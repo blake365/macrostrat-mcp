@@ -1,0 +1,8 @@
+{
+	"mcpServers": {
+		"macrostrat": {
+			"command": "/usr/local/bin/node",
+			"args": ["/Full/Route/to/Folder/macrostrat/build/index.js"]
+		}
+	}
+}

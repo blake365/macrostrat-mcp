@@ -1,13 +1,309 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, GetPromptRequestSchema, ListPromptsRequestSchema, ListToolsRequestSchema, ListRootsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, GetPromptRequestSchema, ListPromptsRequestSchema, ListToolsRequestSchema, ListRootsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
 import fetch from "node-fetch";
 const server = new Server({ name: "macrostrat", version: "1.0.0" }, {
     capabilities: {
         tools: {},
         prompts: {},
         roots: {},
+        resources: {},
     },
+});
+const API_SCHEMAS = {
+    units: {
+        type: "object",
+        properties: {
+            unit_id: { type: "integer", description: "unique identifier for unit" },
+            section_id: {
+                type: "integer",
+                description: "unique identifier for section (package)",
+            },
+            col_id: { type: "integer", description: "unique identifier for column" },
+            project_id: {
+                type: "integer",
+                description: "unique identifier for project, corresponds to general geographic region",
+            },
+            col_area: {
+                type: "number",
+                description: "area in square kilometers of the Macrostrat column",
+            },
+            unit_name: { type: "string", description: "the name of the unit" },
+            strat_name_id: {
+                type: "integer",
+                description: "unique identifier for known stratigraphic name(s) (see /defs/strat_names)",
+            },
+            Mbr: { type: "string", description: "lithostratigraphic member" },
+            Fm: { type: "string", description: "lithostratigraphic formation" },
+            Gp: { type: "string", description: "lithostratigraphic group" },
+            SGp: { type: "string", description: "lithostratigraphic supergroup" },
+            t_age: {
+                type: "number",
+                description: "continuous time age model estimated for truncation, in Myr before present",
+            },
+            b_age: {
+                type: "number",
+                description: "continuous time age model estimated for initiation, in Myr before present",
+            },
+            max_thick: {
+                type: "number",
+                description: "maximum unit thickness in meters",
+            },
+            min_thick: {
+                type: "number",
+                description: "minimum unit thickness in meters (NB: some zero values may be equivalent in meaning to NULL)",
+            },
+            outcrop: {
+                type: "string",
+                description: "describes where unit is exposed or not, values are  'outcrop', 'subsurface', or 'both'",
+            },
+            pbdb_collections: {
+                type: "integer",
+                description: "count of PBDB collections in units/column",
+            },
+            pbdb_occurrences: {
+                type: "integer",
+                description: "count of PBDB occurrences in units/column",
+            },
+            lith: {
+                type: "string",
+                description: "specific lithology, see /defs/lithologies",
+            },
+            environ: {
+                type: "string",
+                description: "specific environment, see /defs/environments",
+            },
+            econ: {
+                type: "string",
+                description: "name of economic use, see defs/econs",
+            },
+            measure: {
+                type: "array",
+                description: "summary of types of measurements available",
+            },
+            notes: {
+                type: "string",
+                description: "notes relevant to containing element",
+            },
+            color: {
+                type: "string",
+                description: "recommended coloring for units based on dominant lithology",
+            },
+            text_color: {
+                type: "string",
+                description: "recommended coloring for text based on color",
+            },
+            t_int_id: {
+                type: "integer",
+                description: "the ID of the chronostratigraphic interval containing the top boundary of the unit",
+            },
+            t_int_name: {
+                type: "string",
+                description: "the name of the chronostratigraphic interval containing the top boundary of the unit",
+            },
+            t_int_age: {
+                type: "number",
+                description: "the top age of the chronostratigraphic interval containing the top boundary of the unit",
+            },
+            t_prop: {
+                type: "number",
+                description: "position of continuous time age model top boundary, proportional to reference time interval (t_interval)",
+            },
+            units_above: {
+                type: "array",
+                items: { type: "integer" },
+                description: "the unit_ids of the units contacting the top of the unit",
+            },
+            b_int_id: {
+                type: "integer",
+                description: "the ID of the chronostratigraphic interval containing the bottom boundary of the unit",
+            },
+            b_int_name: {
+                type: "string",
+                description: "the name of the chronostratigraphic interval containing the bottom boundary of the unit",
+            },
+            b_int_age: {
+                type: "number",
+                description: "the bottom age of the chronostratigraphic interval containing the bottom boundary of the unit",
+            },
+            b_prop: {
+                type: "number",
+                description: "position of continuous time age model bottom boundary, proportional to reference time interval (b_interval)",
+            },
+            units_below: {
+                type: "array",
+                items: { type: "integer" },
+                description: "the unit_ids of the units contacting the bottom of the unit",
+            },
+            clat: {
+                type: "number",
+                description: "present day latitude of the centroid of the column to which the unit belongs",
+            },
+            clng: {
+                type: "number",
+                description: "present day longitude of the centroid of the column to which the unit belongs",
+            },
+            t_plat: {
+                type: "number",
+                description: "same as clat, but rotated to the t_age. Top age paleo latitude.",
+            },
+            t_plng: {
+                type: "number",
+                description: "same as clng, but rotated to the t_age. Top age paleo longitude.",
+            },
+            b_plat: {
+                type: "number",
+                description: "same as clat, but rotated to the b_age. Bottom age paleo latitude.",
+            },
+            b_plng: {
+                type: "number",
+                description: "same as clng, but rotated to the b_age. Bottom age paleo longitude.",
+            },
+            t_pos: {
+                type: "number",
+                description: "The position of unit top in ordering of units in section, optionally in units of m for some columns (e.g., eODP project)",
+            },
+            b_pos: {
+                type: "number",
+                description: "The position of unit bottom in ordering of units in section, optionally in units of m for some columns (e.g., eODP project)",
+            },
+        },
+    },
+    columns: {
+        type: "object",
+        properties: {
+            col_id: { type: "integer", description: "unique identifier for column" },
+            col_name: { type: "string", description: "name of column" },
+            lat: { type: "number", description: "latitude in WGS84" },
+            lng: { type: "number", description: "longitude in WGS84" },
+            col_group: {
+                type: "string",
+                description: "name of group the column belongs to, generally corresponds to geologic provinces",
+            },
+            col_group_id: {
+                type: "integer",
+                description: "the ID of the group to which the column belongs",
+            },
+            group_col_id: {
+                type: "number",
+                description: "the original column ID assigned to the column (used in the original source)",
+            },
+            col_area: {
+                type: "number",
+                description: "area in square kilometers of the Macrostrat column",
+            },
+            project_id: {
+                type: "integer",
+                description: "unique identifier for project, corresponds to general geographic region",
+            },
+            max_thick: {
+                type: "number",
+                description: "maximum unit thickness in meters",
+            },
+            max_min_thick: {
+                type: "integer",
+                description: "the maximum possible minimum thickness in meters",
+            },
+            min_min_thick: {
+                type: "integer",
+                description: "the minimum possible minimum thickness in meters",
+            },
+            b_age: {
+                type: "number",
+                description: "continuous time age model estimated for initiation, in Myr before present",
+            },
+            t_age: {
+                type: "number",
+                description: "continuous time age model estimated for truncation, in Myr before present",
+            },
+            pbdb_collections: {
+                type: "integer",
+                description: "count of PBDB collections in units/column",
+            },
+            lith: {
+                type: "string",
+                description: "specific lithology, see /defs/lithologies",
+            },
+            environ: {
+                type: "string",
+                description: "specific environment, see /defs/environments",
+            },
+            econ: {
+                type: "string",
+                description: "name of economic use, see defs/econs",
+            },
+            t_units: { type: "integer", description: "total units" },
+            t_sections: { type: "integer", description: "total sections" },
+        },
+    },
+    minerals: {
+        type: "object",
+        properties: {
+            mineral_id: {
+                type: "integer",
+                description: "unique identifier for mineral",
+            },
+            mineral: { type: "string", description: "name of mineral" },
+            mineral_type: { type: "string", description: "name of mineral group" },
+            hardness_min: {
+                type: "number",
+                description: "minimum value for Moh's hardness scale",
+            },
+            hardness_max: {
+                type: "number",
+                description: "maximum value for Moh's hardness scale",
+            },
+            mineral_color: {
+                type: "string",
+                description: "color description of mineral",
+            },
+            lustre: { type: "string", description: "description of mineral lustre" },
+            crystal_form: { type: "string", description: "crystal form of mineral" },
+            formula: { type: "string", description: "chemical formula of mineral" },
+            formula_tags: {
+                type: "string",
+                description: "chemical formula of mineral with sub/superscript tags",
+            },
+            url: {
+                type: "string",
+                description: "URL where additional information, the source or contributing publication can be found",
+            },
+        },
+    },
+};
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    const resources = [
+        {
+            uri: "units",
+            name: "Units Response Schema",
+            description: "JSON schema for the response from the units endpoint",
+        },
+        {
+            uri: "columns",
+            name: "Columns Response Schema",
+            description: "JSON schema for the response from the columns endpoint",
+        },
+        {
+            uri: "minerals",
+            name: "Minerals Response Schema",
+            description: "JSON schema for the response from the defs/minerals endpoint",
+        },
+    ];
+    return { resources };
+});
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const schema = API_SCHEMAS[request.params.uri];
+    if (!schema)
+        throw new Error(`Unknown schema: ${request.params.uri}`);
+    return {
+        contents: [
+            {
+                uri: request.params.uri,
+                mimeType: "application/schema+json",
+                text: JSON.stringify(schema, null, 2),
+            },
+        ],
+    };
 });
 const ROOTS = [
     {
@@ -124,7 +420,7 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
                     role: "user",
                     content: {
                         type: "text",
-                        text: `Get information about bedrock geology for the location ${request.params.arguments?.location} by using the Macrostrat API to find the upper most unit in the area. Use long responses to get detailed information.`,
+                        text: `Get information about bedrock geology for the location ${request.params.arguments?.location} by using the Macrostrat API to find the upper most units in the area. Use long responses to get detailed information.`,
                     },
                 },
             ],
@@ -423,48 +719,6 @@ async function getColumns(lat, lng, responseType, adjacents) {
     const sendData = data?.success?.data;
     return sendData;
 }
-// function summarizeUnits(units: MacrostratUnit[]) {
-// 	if (units.length === 0) return "No units found";
-// 	const summaries = units.map((u) => {
-// 		const age =
-// 			u.t_int_age && u.b_int_age
-// 				? `${u.t_int_age} to ${u.b_int_age} Ma (${u.t_int_name} to ${u.b_int_name})`
-// 				: "Age unknown";
-// 		return `${u.strat_name || u.name || "Unnamed unit"}:
-// 		• Map ID: ${u.map_id || "Not specified"}
-// 		• Source ID: ${u.source_id || "Not specified"}
-// 		• Age: ${age}
-// 		• Lithology: ${u.lith || "Not specified"}
-// 		• Description: ${u.descrip || "No description available"}
-// 		${u.comments ? `• Comments: ${u.comments}` : ""}
-// 		${u.macro_units ? `• Associated Macrostrat Units: ${u.macro_units.join(", ")}` : ""}
-// 		${u.strat_names ? `• Associated Strat Names: ${u.strat_names.join(", ")}` : ""}
-// 		${u.color ? `• Map Color: ${u.color}` : ""}`;
-// 	});
-// 	// Add summary statistics
-// 	const ageRange = units
-// 		.filter((u) => u.t_int_age && u.b_int_age)
-// 		.reduce(
-// 			(range, u) => {
-// 				return {
-// 					min: Math.min(range.min, u.b_int_age!),
-// 					max: Math.max(range.max, u.t_int_age!),
-// 				};
-// 			},
-// 			{ min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY },
-// 		);
-// 	const summary = `Found ${units.length} units${ageRange.min !== Number.POSITIVE_INFINITY ? ` spanning ${ageRange.min} to ${ageRange.max} Ma` : ""}
-// Detailed unit descriptions:
-// ${summaries.join("\n\n")}`;
-// 	return summary;
-// }
-// function summarizeColumns(columns: any[]) {
-// 	if (columns.length === 0) return "No columns found";
-// 	const names = columns.map((c) => c.col_name).join(", ");
-// 	const ages = columns.map((c) => Number(c.col_t_age));
-// 	const ageRange = `spanning ${Math.min(...ages)} to ${Math.max(...ages)}`;
-// 	return `${columns.length} columns including ${names}, ${ageRange}`;
-// }
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
