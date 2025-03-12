@@ -1,6 +1,8 @@
 # macrostrat-mcp
 Claude MCP server for Macrostrat API
 
+[![smithery badge](https://smithery.ai/badge/@blake365/macrostrat-mcp)](https://smithery.ai/server/@blake365/macrostrat-mcp)
+
 An MCP server implementation for providing access to the [Macrostrat API](https://macrostrat.org/api) within [Claude Desktop](https://claude.ai/download).
 
 ## Overview
@@ -100,11 +102,13 @@ The bedrock of Nashville today consists primarily of Ordovician limestone format
 
 ## Installation
 
-Installing this might be tricky if you're not familiar with Node.js and the MCP protocol.
+### Installing via Smithery
 
-1. Install [Node.js](https://nodejs.org/en/download)
-2. Clone this repository to a folder on your local machine
-3. The server is already built so you can skip the build step.
+To install Macrostrat API Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@blake365/macrostrat-mcp):
+
+```bash
+npx -y @smithery/cli install @blake365/macrostrat-mcp --client claude
+```
 
 ### Extra Steps
 
