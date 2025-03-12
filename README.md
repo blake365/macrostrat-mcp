@@ -3,6 +3,10 @@ Claude MCP server for Macrostrat API
 
 [![smithery badge](https://smithery.ai/badge/@blake365/macrostrat-mcp)](https://smithery.ai/server/@blake365/macrostrat-mcp)
 
+<a href="https://glama.ai/mcp/servers/v67anfiq0s">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/v67anfiq0s/badge" alt="Macrostrat Server MCP server" />
+</a>
+
 An MCP server implementation for providing access to the [Macrostrat API](https://macrostrat.org/api) within [Claude Desktop](https://claude.ai/download).
 
 ## Overview
