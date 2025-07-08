@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/blake365-macrostrat-mcp-badge.png)](https://mseep.ai/app/blake365-macrostrat-mcp)
+
 # macrostrat-mcp
 Claude MCP server for Macrostrat API
 
