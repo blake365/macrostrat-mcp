@@ -11,6 +11,31 @@ const server = new Server({ name: "macrostrat", version: "1.0.0" }, {
     },
 });
 const API_SCHEMAS = {
+    api_response: {
+        type: "object",
+        properties: {
+            success: {
+                type: "object",
+                properties: {
+                    v: {
+                        type: "integer",
+                        description: "API version number"
+                    },
+                    license: {
+                        type: "string",
+                        description: "Data license (typically CC-BY 4.0)"
+                    },
+                    data: {
+                        type: "array",
+                        description: "Array of data objects - structure depends on endpoint",
+                        items: { type: "object" }
+                    }
+                },
+                required: ["data"]
+            }
+        },
+        required: ["success"]
+    },
     units: {
         type: "object",
         properties: {
@@ -28,15 +53,15 @@ const API_SCHEMAS = {
                 type: "number",
                 description: "area in square kilometers of the Macrostrat column",
             },
-            unit_name: { type: "string", description: "the name of the unit" },
+            unit_name: { type: ["string", "null"], description: "the name of the unit" },
             strat_name_id: {
-                type: "integer",
+                type: ["integer", "null"],
                 description: "unique identifier for known stratigraphic name(s) (see /defs/strat_names)",
             },
-            Mbr: { type: "string", description: "lithostratigraphic member" },
-            Fm: { type: "string", description: "lithostratigraphic formation" },
-            Gp: { type: "string", description: "lithostratigraphic group" },
-            SGp: { type: "string", description: "lithostratigraphic supergroup" },
+            Mbr: { type: ["string", "null"], description: "lithostratigraphic member" },
+            Fm: { type: ["string", "null"], description: "lithostratigraphic formation" },
+            Gp: { type: ["string", "null"], description: "lithostratigraphic group" },
+            SGp: { type: ["string", "null"], description: "lithostratigraphic supergroup" },
             t_age: {
                 type: "number",
                 description: "continuous time age model estimated for truncation, in Myr before present",
@@ -55,7 +80,8 @@ const API_SCHEMAS = {
             },
             outcrop: {
                 type: "string",
-                description: "describes where unit is exposed or not, values are  'outcrop', 'subsurface', or 'both'",
+                description: "describes where unit is exposed or not, values are 'outcrop', 'subsurface', or 'both'",
+                enum: ["outcrop", "subsurface", "both"]
             },
             pbdb_collections: {
                 type: "integer",
@@ -66,23 +92,24 @@ const API_SCHEMAS = {
                 description: "count of PBDB occurrences in units/column",
             },
             lith: {
-                type: "string",
+                type: ["string", "null"],
                 description: "specific lithology, see /defs/lithologies",
             },
             environ: {
-                type: "string",
+                type: ["string", "null"],
                 description: "specific environment, see /defs/environments",
             },
             econ: {
-                type: "string",
+                type: ["string", "null"],
                 description: "name of economic use, see defs/econs",
             },
             measure: {
-                type: "array",
+                type: ["array", "null"],
                 description: "summary of types of measurements available",
+                items: { type: "string" }
             },
             notes: {
-                type: "string",
+                type: ["string", "null"],
                 description: "notes relevant to containing element",
             },
             color: {
@@ -173,19 +200,19 @@ const API_SCHEMAS = {
         type: "object",
         properties: {
             col_id: { type: "integer", description: "unique identifier for column" },
-            col_name: { type: "string", description: "name of column" },
+            col_name: { type: ["string", "null"], description: "name of column" },
             lat: { type: "number", description: "latitude in WGS84" },
             lng: { type: "number", description: "longitude in WGS84" },
             col_group: {
-                type: "string",
+                type: ["string", "null"],
                 description: "name of group the column belongs to, generally corresponds to geologic provinces",
             },
             col_group_id: {
-                type: "integer",
+                type: ["integer", "null"],
                 description: "the ID of the group to which the column belongs",
             },
             group_col_id: {
-                type: "number",
+                type: ["number", "null"],
                 description: "the original column ID assigned to the column (used in the original source)",
             },
             col_area: {
@@ -221,15 +248,15 @@ const API_SCHEMAS = {
                 description: "count of PBDB collections in units/column",
             },
             lith: {
-                type: "string",
+                type: ["string", "null"],
                 description: "specific lithology, see /defs/lithologies",
             },
             environ: {
-                type: "string",
+                type: ["string", "null"],
                 description: "specific environment, see /defs/environments",
             },
             econ: {
-                type: "string",
+                type: ["string", "null"],
                 description: "name of economic use, see defs/econs",
             },
             t_units: { type: "integer", description: "total units" },
@@ -246,19 +273,25 @@ const API_SCHEMAS = {
             mineral: { type: "string", description: "name of mineral" },
             mineral_type: { type: "string", description: "name of mineral group" },
             hardness_min: {
-                type: "number",
+                type: ["number", "null"],
                 description: "minimum value for Moh's hardness scale",
             },
             hardness_max: {
-                type: "number",
+                type: ["number", "null"],
                 description: "maximum value for Moh's hardness scale",
             },
             mineral_color: {
-                type: "string",
+                type: ["string", "null"],
                 description: "color description of mineral",
             },
-            lustre: { type: "string", description: "description of mineral lustre" },
-            crystal_form: { type: "string", description: "crystal form of mineral" },
+            lustre: {
+                type: ["string", "null"],
+                description: "description of mineral lustre"
+            },
+            crystal_form: {
+                type: ["string", "null"],
+                description: "crystal form of mineral"
+            },
             formula: { type: "string", description: "chemical formula of mineral" },
             formula_tags: {
                 type: "string",
@@ -270,9 +303,278 @@ const API_SCHEMAS = {
             },
         },
     },
+    lithologies: {
+        type: "object",
+        properties: {
+            lith_id: {
+                type: "integer",
+                description: "unique ID of the lithology",
+            },
+            name: {
+                type: "string",
+                description: "the name of the entity",
+            },
+            group: {
+                type: ["string", "null"],
+                description: "definition group, less inclusive than type",
+            },
+            type: {
+                type: ["string", "null"],
+                description: "definition type, less inclusive than class",
+            },
+            class: {
+                type: ["string", "null"],
+                description: "definition class, more inclusive than type",
+            },
+            color: {
+                type: ["string", "null"],
+                description: "recommended coloring for units based on dominant lithology",
+            },
+        },
+    },
+    environments: {
+        type: "object",
+        properties: {
+            environ_id: {
+                type: "integer",
+                description: "unique identifier for the environment",
+            },
+            name: {
+                type: "string",
+                description: "name of the entity",
+            },
+            type: {
+                type: ["string", "null"],
+                description: "definition type, less inclusive than class",
+            },
+            class: {
+                type: ["string", "null"],
+                description: "definition class, more inclusive than type",
+            },
+            color: {
+                type: ["string", "null"],
+                description: "recommended coloring for units based on dominant lithology",
+            },
+        },
+    },
+    timescales: {
+        type: "object",
+        properties: {
+            timescale_id: {
+                type: "integer",
+                description: "unique identifier",
+            },
+            timescale: {
+                type: "string",
+                description: "timescale name",
+            },
+            max_age: {
+                type: "string",
+                description: "maximum age using International time scale",
+            },
+            min_age: {
+                type: "string",
+                description: "minimum age using International time scale",
+            },
+            n_intervals: {
+                type: "integer",
+                description: "count of intervals in timescale",
+            },
+            ref_id: {
+                type: "integer",
+                description: "unique reference identifier",
+            },
+        },
+    },
+    intervals: {
+        type: "object",
+        properties: {
+            int_id: {
+                type: "integer",
+                description: "unique interval identifier",
+            },
+            name: {
+                type: "string",
+                description: "name of the interval",
+            },
+            abbrev: {
+                type: "string",
+                description: "standard abbreviation for interval name",
+            },
+            t_age: {
+                type: "number",
+                description: "truncation age in millions of years before present",
+            },
+            b_age: {
+                type: "number",
+                description: "initiation age in millions of years before present",
+            },
+            int_type: {
+                type: "string",
+                description: "temporal rank of the interval",
+            },
+            color: {
+                type: "string",
+                description: "recommended color based on dominant lithology",
+            },
+        },
+    },
+    econs: {
+        type: "object",
+        properties: {
+            econ_id: {
+                type: "integer",
+                description: "unique econ identifier",
+            },
+            name: {
+                type: "string",
+                description: "name of the entity",
+            },
+            type: {
+                type: ["string", "null"],
+                description: "definition type, less inclusive than class",
+            },
+            class: {
+                type: ["string", "null"],
+                description: "definition class, more inclusive than type",
+            },
+            color: {
+                type: ["string", "null"],
+                description: "recommended coloring for units based on dominant lithology",
+            },
+        },
+    },
+    strat_names: {
+        type: "object",
+        properties: {
+            strat_name: {
+                type: ["string", "null"],
+                description: "informal unit name",
+            },
+            rank: {
+                type: ["string", "null"],
+                description: "stratigraphic rank of the unit",
+            },
+            strat_name_id: {
+                type: "integer",
+                description: "unique identifier",
+            },
+            concept_id: {
+                type: ["integer", "null"],
+                description: "unique identifier for stratigraphic name concept",
+            },
+            bed: {
+                type: ["string", "null"],
+                description: "bed name",
+            },
+            bed_id: {
+                type: ["integer", "null"],
+                description: "bed identifier",
+            },
+            mbr: {
+                type: ["string", "null"],
+                description: "member name",
+            },
+            mbr_id: {
+                type: ["integer", "null"],
+                description: "member identifier",
+            },
+            fm: {
+                type: ["string", "null"],
+                description: "formation name",
+            },
+            fm_id: {
+                type: ["integer", "null"],
+                description: "formation identifier",
+            },
+            gp: {
+                type: ["string", "null"],
+                description: "group name",
+            },
+            gp_id: {
+                type: ["integer", "null"],
+                description: "group identifier",
+            },
+            sgp: {
+                type: ["string", "null"],
+                description: "supergroup name",
+            },
+            sgp_id: {
+                type: ["integer", "null"],
+                description: "supergroup identifier",
+            },
+            b_age: {
+                type: ["number", "null"],
+                description: "estimated initiation time (Myr before present)",
+            },
+            t_age: {
+                type: ["number", "null"],
+                description: "estimated truncation time (Myr before present)",
+            },
+            ref_id: {
+                type: ["integer", "null"],
+                description: "unique reference identifier",
+            },
+        },
+    },
+    structures: {
+        type: "object",
+        properties: {
+            structure_id: {
+                type: "integer",
+                description: "unique structure ID",
+            },
+            name: {
+                type: "string",
+                description: "name of the entity",
+            },
+            group: {
+                type: ["string", "null"],
+                description: "definition group, less inclusive than type",
+            },
+            type: {
+                type: ["string", "null"],
+                description: "definition type, less inclusive than class",
+            },
+            class: {
+                type: ["string", "null"],
+                description: "definition class, more inclusive than type",
+            },
+        },
+    },
+    measurements: {
+        type: "object",
+        properties: {
+            measure_id: {
+                type: "integer",
+                description: "unique ID of the measurement",
+            },
+            name: {
+                type: "string",
+                description: "name of the entity",
+            },
+            type: {
+                type: ["string", "null"],
+                description: "definition type, less inclusive than class",
+            },
+            class: {
+                type: ["string", "null"],
+                description: "definition class, more inclusive than type",
+            },
+            t_units: {
+                type: "integer",
+                description: "total units",
+            },
+        },
+    },
 };
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
     const resources = [
+        {
+            uri: "api_response",
+            name: "API Response Wrapper Schema",
+            description: "JSON schema for the standard Macrostrat API response wrapper containing success metadata and data array",
+        },
         {
             uri: "units",
             name: "Units Response Schema",
@@ -287,6 +589,46 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
             uri: "minerals",
             name: "Minerals Response Schema",
             description: "JSON schema for the response from the defs/minerals endpoint",
+        },
+        {
+            uri: "lithologies",
+            name: "Lithologies Response Schema",
+            description: "JSON schema for the response from the defs/lithologies endpoint",
+        },
+        {
+            uri: "environments",
+            name: "Environments Response Schema",
+            description: "JSON schema for the response from the defs/environments endpoint",
+        },
+        {
+            uri: "timescales",
+            name: "Timescales Response Schema",
+            description: "JSON schema for the response from the defs/timescales endpoint",
+        },
+        {
+            uri: "intervals",
+            name: "Intervals Response Schema",
+            description: "JSON schema for the response from the defs/intervals endpoint",
+        },
+        {
+            uri: "econs",
+            name: "Economic Uses Response Schema",
+            description: "JSON schema for the response from the defs/econs endpoint",
+        },
+        {
+            uri: "strat_names",
+            name: "Stratigraphic Names Response Schema",
+            description: "JSON schema for the response from the defs/strat_names endpoint",
+        },
+        {
+            uri: "structures",
+            name: "Structures Response Schema",
+            description: "JSON schema for the response from the defs/structures endpoint",
+        },
+        {
+            uri: "measurements",
+            name: "Measurements Response Schema",
+            description: "JSON schema for the response from the defs/measurements endpoint",
         },
     ];
     return { resources };
@@ -719,7 +1061,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
     else if (request.params.name === "defs") {
         const { endpoint, parameters } = request.params.arguments;
-        const params = new URLSearchParams({ endpoint, parameters });
+        const params = new URLSearchParams(parameters);
         const response = await fetch(`${getApiEndpoint("base")}/defs/${endpoint}?${params}`);
         data = await response.json();
     }
