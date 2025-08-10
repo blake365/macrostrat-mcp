@@ -1,7 +1,7 @@
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/blake365-macrostrat-mcp-badge.png)](https://mseep.ai/app/blake365-macrostrat-mcp)
 
 # macrostrat-mcp
-Claude MCP server for Macrostrat API
+MCP server for Macrostrat API
 
 [![smithery badge](https://smithery.ai/badge/@blake365/macrostrat-mcp)](https://smithery.ai/server/@blake365/macrostrat-mcp)
 
@@ -17,6 +17,7 @@ This Model Context Protocol (MCP) server enables AI assistants and applications 
 
 - Query comprehensive geologic data and information provided by the Macrostrat API
 - Access geologic units, columns, minerals, timescales, and more
+- Get geologic map tiles that the LLM can interpret (questionable utility, but might be useful for some applications)
 - Analyze geologic data to improve geological understanding
 - Create graphics and perform data analysis from the data
 
@@ -146,7 +147,7 @@ If you want to make changes to the server you can do so by editing the `src/inde
 
 3. Close/Quit then restart Claude Desktop
 
-Once you restart you should see a small hammer icon in the lower right corner of the textbox. If you hover over the icon you'll see the number of MCP tools available.
+Once you restart you should see an icon for search and tools. Click this button to see the MCP tools available.
 
 ## Troubleshooting
 
