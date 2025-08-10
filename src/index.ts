@@ -385,6 +385,12 @@ const ROOTS = [
 		name: "Macrostrat Definitions API",
 		description: "Endpoint for querying definitions and dictionaries",
 	},
+	{
+		type: "api" as const,
+		uri: "https://tiles.macrostrat.org",
+		name: "Macrostrat Tiles API",
+		description: "Endpoint for querying map tiles with geologic data",
+	},
 	// {
 	// 	type: "geographic" as const,
 	// 	uri: "geo:///north-america",
@@ -440,6 +446,30 @@ const PROMPTS = {
 			},
 		],
 	},
+	"geologic-map": {
+		name: "geologic-map",
+		description: "Generate map tiles for visualizing geology of an area",
+		arguments: [
+			{
+				name: "location",
+				description: "The location to create a geologic map for",
+				type: "string",
+				required: true,
+			},
+			{
+				name: "zoom_level",
+				description: "Zoom level for the map (0-18, higher = more detailed)",
+				type: "string",
+				required: false,
+			},
+			{
+				name: "scale",
+				description: "Map scale: small (most coverage), medium (balanced), large (most detail)",
+				type: "string",
+				required: false,
+			},
+		],
+	},
 };
 
 server.setRequestHandler(ListPromptsRequestSchema, async () => {
@@ -479,6 +509,38 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
 					content: {
 						type: "text",
 						text: `Get information about bedrock geology for the location ${request.params.arguments?.location} by using the Macrostrat API to find the upper most units in the area. Use long responses to get detailed information.`,
+					},
+				},
+			],
+		};
+	}
+
+	if (request.params.name === "geologic-map") {
+		const zoomLevel = request.params.arguments?.zoom_level || "10";
+		const scale = request.params.arguments?.scale || "carto";
+		return {
+			messages: [
+				{
+					role: "user",
+					content: {
+						type: "text",
+						text: `Create a geologic map visualization for ${request.params.arguments?.location}. 
+
+Step 1: Convert the location to precise latitude/longitude coordinates.
+
+Step 2: Use the lat-lng-to-tile tool to convert the coordinates to tile coordinates (x, y) for zoom level ${zoomLevel}.
+
+Step 3: Use the map-tiles tool with the calculated x, y coordinates and zoom level ${zoomLevel}, using "${scale}" scale. Set fetch_image=true to retrieve the actual tile image for visual analysis.
+
+Step 4: Analyze the geological map tile image to identify:
+- Rock unit colors and patterns
+- Geological formations and structures
+- Fault lines and other linear features
+- Age relationships between units
+
+Step 5: Consider getting adjacent tiles (x±1, y±1) with fetch_image=true to show a broader geological context.
+
+Step 6: Provide both the tile URLs and detailed analysis of the geological features visible in the map images.`,
 					},
 				},
 			],
@@ -621,6 +683,77 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 					},
 				},
 			},
+			{
+				name: "lat-lng-to-tile",
+				description: "Convert latitude/longitude coordinates to map tile coordinates (x, y) for a given zoom level. Uses the same web mercator projection as MapKit.",
+				inputSchema: {
+					type: "object",
+					properties: {
+						lat: {
+							type: "number",
+							description: "Latitude in decimal degrees (-90 to 90)",
+							minimum: -90,
+							maximum: 90,
+						},
+						lng: {
+							type: "number", 
+							description: "Longitude in decimal degrees (-180 to 180)",
+							minimum: -180,
+							maximum: 180,
+						},
+						zoom: {
+							type: "integer",
+							description: "Zoom level (0-18)",
+							minimum: 0,
+							maximum: 18,
+						},
+					},
+					required: ["lat", "lng", "zoom"],
+				},
+			},
+			{
+				name: "map-tiles",
+				description: "Get map tile URLs from the Macrostrat tiles server. Use lat-lng-to-tile tool first to get proper x,y coordinates. Defaults to 'carto' scale which automatically adapts detail level to zoom.",
+				inputSchema: {
+					type: "object",
+					properties: {
+						scale: {
+							type: "string",
+							description: "Map scale layer - 'carto' automatically selects appropriate detail level based on zoom. Other scales (tiny, small, medium, large) may have limited coverage.",
+							enum: ["carto", "tiny", "small", "medium", "large"],
+							default: "carto",
+						},
+						z: {
+							type: "integer",
+							description: "Zoom level (0-18). Higher zoom = more detailed view of smaller area. Typical values: z=3 (continent), z=6 (country), z=10 (city), z=15 (neighborhood)",
+							minimum: 0,
+							maximum: 18,
+						},
+						x: {
+							type: "integer",
+							description: "Tile X coordinate - use lat-lng-to-tile tool to calculate this from lat/lng",
+							minimum: 0,
+						},
+						y: {
+							type: "integer",
+							description: "Tile Y coordinate - use lat-lng-to-tile tool to calculate this from lat/lng", 
+							minimum: 0,
+						},
+						format: {
+							type: "string",
+							description: "Tile format: 'png' for images, 'mvt' for vector tiles",
+							enum: ["mvt", "png"],
+							default: "png",
+						},
+						fetch_image: {
+							type: "boolean",
+							description: "If true, actually fetch the tile image data so Claude can analyze the geological features visually",
+							default: false,
+						},
+					},
+					required: ["z", "x", "y"]
+				},
+			},
 		],
 	};
 });
@@ -682,6 +815,63 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 			`${getApiEndpoint("base")}/v2/defs/intervals?${params}`,
 		);
 		data = await response.json();
+	} else if (request.params.name === "lat-lng-to-tile") {
+		const { lat, lng, zoom } = request.params.arguments as any;
+		
+		// Proper web mercator tile coordinate calculation (same as MapKit)
+		const n = Math.pow(2, zoom);
+		const x = Math.floor((lng + 180) / 360 * n);
+		
+		// Convert latitude to radians
+		const lat_rad = lat * Math.PI / 180;
+		// Web mercator y calculation
+		const y = Math.floor((1 - Math.asinh(Math.tan(lat_rad)) / Math.PI) / 2 * n);
+		
+		data = {
+			x,
+			y,
+			z: zoom,
+			lat,
+			lng,
+			zoom,
+			note: "Use these x,y coordinates with the map-tiles tool"
+		};
+	} else if (request.params.name === "map-tiles") {
+		const { scale = "carto", z, x, y, format = "png", fetch_image = false } = request.params.arguments as any;
+		const tileUrl = `https://tiles.macrostrat.org/${scale}/${z}/${x}/${y}.${format}`;
+		
+		let imageData = null;
+		if (fetch_image && format === "png") {
+			try {
+				const response = await fetch(tileUrl);
+				if (response.ok) {
+					const buffer = await response.arrayBuffer();
+					const base64 = Buffer.from(buffer).toString('base64');
+					imageData = `data:image/png;base64,${base64}`;
+				}
+			} catch (error) {
+				console.error("Error fetching tile image:", error);
+			}
+		}
+		
+		data = {
+			url: tileUrl,
+			scale,
+			z,
+			x,
+			y,
+			format,
+			...(imageData && { image_data: imageData }),
+			info: {
+				layers: ["units", "lines"],
+				description: scale === "carto" 
+					? "Adaptive geological map that selects appropriate detail level based on zoom"
+					: `Maps from the "${scale}" scale (may have limited geographic coverage)`,
+				license: "CC BY 4.0 International",
+				attribution: "Macrostrat and original data providers",
+				...(imageData && { note: "Image data included for visual analysis" })
+			}
+		};
 	} else {
 		throw new Error(`Unknown tool: ${request.params.name}`);
 	}
@@ -693,33 +883,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 	};
 });
 
-function validateCoordinates(lat: number, lng: number) {
-	if (typeof lat !== "number" || typeof lng !== "number") {
-		throw new Error("Coordinates must be numbers");
-	}
-	if (lat < -90 || lat > 90) {
-		throw new Error("Latitude must be between -90 and 90 degrees");
-	}
-	if (lng < -180 || lng > 180) {
-		throw new Error("Longitude must be between -180 and 180 degrees");
-	}
-
-	// const inRoot = ROOTS.some((root) => {
-	// 	if (root.type !== "geographic") return false;
-	// 	return (
-	// 		lat <= root.bounds.north &&
-	// 		lat >= root.bounds.south &&
-	// 		lng >= root.bounds.west &&
-	// 		lng <= root.bounds.east
-	// 	);
-	// });
-
-	// if (!inRoot) {
-	// 	throw new Error(
-	// 		"Coordinates outside supported regions. The Macrostrat API primarily covers North America.",
-	// 	);
-	// }
-}
 
 function getApiEndpoint(
 	type: "mapUnits" | "units" | "columns" | "base",
@@ -747,72 +910,6 @@ function getApiEndpoint(
 	return endpoint.uri;
 }
 
-async function getUnits(
-	lat: number,
-	lng: number,
-	responseType: string,
-	age?: number,
-) {
-	validateCoordinates(lat, lng);
-
-	const params = new URLSearchParams({
-		lat: lat.toString(),
-		lng: lng.toString(),
-		response: responseType,
-	});
-
-	if (age) {
-		params.set("age", age.toString());
-		const resp = await fetch(`${getApiEndpoint("units")}?${params}`);
-		if (!resp.ok) {
-			throw new Error(`Failed to get units: ${resp.status} ${resp.statusText}`);
-		}
-		const data = (await resp.json()) as any;
-		return data;
-	}
-
-	const resp = await fetch(`${getApiEndpoint("mapUnits")}?${params}`);
-	if (!resp.ok) {
-		throw new Error(
-			`Failed to get map units: ${resp.status} ${resp.statusText}`,
-		);
-	}
-
-	const data = (await resp.json()) as any;
-	const references = data.success.refs;
-	let sendData = data.success.data as any;
-
-	// Merge references with their corresponding data
-	sendData = sendData.map((unit: any) => ({
-		...unit,
-		references: references[unit.source_id!] || null,
-	}));
-
-	return sendData;
-}
-
-async function getColumns(
-	lat: number,
-	lng: number,
-	responseType: string,
-	adjacents: boolean,
-) {
-	const params = {
-		lat: lat.toString(),
-		lng: lng.toString(),
-		adjacents: adjacents ? "true" : "false",
-		response: responseType,
-	};
-	const resp = await fetch(
-		`${getApiEndpoint("columns")}?${new URLSearchParams(params)}`,
-	);
-	if (!resp.ok) {
-		throw new Error(`Failed to get columns: ${resp.status} ${resp.statusText}`);
-	}
-	const data = (await resp.json()) as any;
-	const sendData = data?.success?.data as any[];
-	return sendData;
-}
 
 async function main() {
 	const transport = new StdioServerTransport();
