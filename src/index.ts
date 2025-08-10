@@ -906,7 +906,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 		tools: [
 			{
 				name: "find-columns",
-				description: "Query Macrostrat stratigraphic columns",
+				description: "Find geological stratigraphic columns, rock layers, and geological history for any location worldwide. Use for geology, bedrock, formations, age dating, and stratigraphic analysis.",
 				inputSchema: {
 					type: "object",
 					properties: {
@@ -934,7 +934,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 			},
 			{
 				name: "find-units",
-				description: "Query Macrostrat geologic units",
+				description: "Find geological rock units, formations, bedrock geology, and mineral information for any location worldwide. Use for geology questions, rock types, age dating, lithology, and geological analysis.",
 				inputSchema: {
 					type: "object",
 					properties: {
