@@ -6,6 +6,7 @@ import {
 	ListPromptsRequestSchema,
 	ListToolsRequestSchema,
 	TextContent,
+	ImageContent,
 	ListRootsRequestSchema,
 	Resource,
 	ListResourcesRequestSchema,
@@ -840,38 +841,84 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 		const { scale = "carto", z, x, y, format = "png", fetch_image = false } = request.params.arguments as any;
 		const tileUrl = `https://tiles.macrostrat.org/${scale}/${z}/${x}/${y}.${format}`;
 		
-		let imageData = null;
 		if (fetch_image && format === "png") {
 			try {
 				const response = await fetch(tileUrl);
 				if (response.ok) {
 					const buffer = await response.arrayBuffer();
 					const base64 = Buffer.from(buffer).toString('base64');
-					imageData = `data:image/png;base64,${base64}`;
+					
+					// Return both text info and image content
+					return {
+						content: [
+							{ 
+								type: "text", 
+								text: JSON.stringify({
+									url: tileUrl,
+									scale,
+									z,
+									x,
+									y,
+									format,
+									info: {
+										layers: ["units", "lines"],
+										description: scale === "carto" 
+											? "Adaptive geological map that selects appropriate detail level based on zoom"
+											: `Maps from the "${scale}" scale (may have limited geographic coverage)`,
+										license: "CC BY 4.0 International",
+										attribution: "Macrostrat and original data providers",
+										note: "Geological map tile image provided below for visual analysis"
+									}
+								}, null, 2)
+							} as TextContent,
+							{
+								type: "image",
+								data: base64,
+								mimeType: "image/png"
+							} as ImageContent,
+						],
+					};
+				} else {
+					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 				}
 			} catch (error) {
 				console.error("Error fetching tile image:", error);
+				data = {
+					url: tileUrl,
+					scale,
+					z,
+					x,
+					y,
+					format,
+					error: `Failed to fetch image: ${error instanceof Error ? error.message : String(error)}`,
+					info: {
+						layers: ["units", "lines"],
+						description: scale === "carto" 
+							? "Adaptive geological map that selects appropriate detail level based on zoom"
+							: `Maps from the "${scale}" scale (may have limited geographic coverage)`,
+						license: "CC BY 4.0 International",
+						attribution: "Macrostrat and original data providers"
+					}
+				};
 			}
+		} else {
+			data = {
+				url: tileUrl,
+				scale,
+				z,
+				x,
+				y,
+				format,
+				info: {
+					layers: ["units", "lines"],
+					description: scale === "carto" 
+						? "Adaptive geological map that selects appropriate detail level based on zoom"
+						: `Maps from the "${scale}" scale (may have limited geographic coverage)`,
+					license: "CC BY 4.0 International",
+					attribution: "Macrostrat and original data providers"
+				}
+			};
 		}
-		
-		data = {
-			url: tileUrl,
-			scale,
-			z,
-			x,
-			y,
-			format,
-			...(imageData && { image_data: imageData }),
-			info: {
-				layers: ["units", "lines"],
-				description: scale === "carto" 
-					? "Adaptive geological map that selects appropriate detail level based on zoom"
-					: `Maps from the "${scale}" scale (may have limited geographic coverage)`,
-				license: "CC BY 4.0 International",
-				attribution: "Macrostrat and original data providers",
-				...(imageData && { note: "Image data included for visual analysis" })
-			}
-		};
 	} else {
 		throw new Error(`Unknown tool: ${request.params.name}`);
 	}
