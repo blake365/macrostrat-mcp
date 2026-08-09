@@ -9,15 +9,29 @@ This is a Model Context Protocol (MCP) server that provides access to the Macros
 ## Architecture
 
 **Core Components:**
-- `src/index.ts`: Main MCP server implementation using `@modelcontextprotocol/sdk`
-- Single-file architecture with all tools, prompts, and API integrations in one module
-- Built as a CLI tool that outputs to `build/index.js` with executable permissions
+- `src/server.ts`: Server factory (`createServer`) with all tools, prompts, resource
+  schemas, and API integrations. Side-effect free — it only builds and returns a server.
+- `src/index.ts`: STDIO entry point. Imports `createServer` and connects a
+  `StdioServerTransport`. This is what `build/index.js` becomes, and what Claude
+  Desktop runs.
+
+The two entry points are deliberately separate: the Smithery HTTP runtime bundles
+`src/server.ts` (via the `module` field in package.json), so neither file has to
+detect whether it is the process entry point.
 
 **Key Features:**
-- 6 main tools for querying Macrostrat API endpoints
-- 2 built-in prompts for common geological queries
+- 8 tools for querying Macrostrat API endpoints
+- 3 built-in prompts for common geological queries
 - Resource schemas for API response validation
 - Coordinate validation for geographic queries
+- All tools are annotated `readOnlyHint: true`; everything except `lat-lng-to-tile`
+  is also `openWorldHint: true`
+
+**Conventions:**
+- Use the shared `fetchJson()` helper for Macrostrat JSON endpoints. It applies the
+  30s timeout and converts non-2xx responses and network failures into tool errors
+  (`isError: true`) rather than throwing.
+- Native `fetch` is used — do not reintroduce `node-fetch`.
 
 ## Development Commands
 
@@ -25,12 +39,22 @@ This is a Model Context Protocol (MCP) server that provides access to the Macros
 # Install dependencies
 npm install
 
-# Build the server (compiles TypeScript and sets executable permissions)
+# Build the STDIO server for Claude Desktop
+# (compiles TypeScript to build/ and sets executable permissions)
+npm run build:stdio
+
+# Build the Smithery HTTP bundle for hosted deploys -> .smithery/shttp/
 npm run build
+
+# Run from source over STDIO, no build step
+npm run dev:stdio
 
 # No tests configured (test command will fail)
 npm test  # Returns error
 ```
+
+Note: `@smithery/cli` is pinned to the v3 line. v4 dropped the `build`, `dev`, and
+`publish` commands and is now a consumer-only CLI, so it cannot build this server.
 
 ## API Integration
 
@@ -47,6 +71,8 @@ The server connects to multiple Macrostrat API endpoints:
 - `defs-autocomplete`: Quick definition search (100 result limit)
 - `mineral-info`: Get mineral details by name/type/element
 - `timescale`: Get time period information by age
+- `lat-lng-to-tile`: Convert lat/lng + zoom to web mercator tile x/y (local, no network)
+- `map-tiles`: Get Macrostrat map tile URLs, optionally fetching the PNG for analysis
 
 ## MCP Configuration
 

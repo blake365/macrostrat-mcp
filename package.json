@@ -1,9 +1,12 @@
 {
 	"name": "macrostrat",
 	"version": "1.0.0",
-	"main": "index.js",
-	"module": "./src/index.ts",
+	"main": "./build/index.js",
+	"module": "./src/server.ts",
 	"type": "module",
+	"engines": {
+		"node": ">=20"
+	},
 	"bin": {
 		"macrostrat": "./build/index.js"
 	},
@@ -19,19 +22,22 @@
 	"files": [
 		"build"
 	],
-	"keywords": ["macrostrat", "geology", "stratigraphy"],
+	"keywords": [
+		"macrostrat",
+		"geology",
+		"stratigraphy"
+	],
 	"author": "Blake Morgan",
 	"license": "MIT",
 	"description": "Macrostrat MCP Server - Access geological data, rock units, formations, and stratigraphic information worldwide",
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.0.4",
-		"@types/node": "^22.10.2",
-		"node-fetch": "^3.3.2",
-		"typescript": "^5.7.2",
-		"zod": "^3.24.1"
+		"@modelcontextprotocol/sdk": "^1.30.0",
+		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@smithery/cli": "^1.2.20",
-		"tsx": "^4.20.5"
+		"@smithery/cli": "^3.19.0",
+		"@types/node": "^22.20.1",
+		"tsx": "^4.23.11",
+		"typescript": "^5.9.3"
 	}
 }

@@ -117,12 +117,22 @@ To install Macrostrat API Server for Claude Desktop automatically via [Smithery]
 npx -y @smithery/cli install @blake365/macrostrat-mcp --client claude
 ```
 
-### Extra Steps
+### Building locally
 
-If you want to make changes to the server you can do so by editing the `src/index.ts` file.
+Requires Node.js 20 or newer.
+
 - Run `npm install` to install dependencies
-- Run `npm run build` to build the server
+- Run `npm run build:stdio` to build the server to `build/index.js`
 - Quit and restart Claude Desktop after making changes
+
+If you want to make changes to the server, edit `src/server.ts` — that file holds all
+the tools, prompts, and API calls. `src/index.ts` is just the STDIO entry point.
+
+To try changes without building, run `npm run dev:stdio`.
+
+> **Note:** `npm run build` is a different command — it produces the Smithery HTTP
+> bundle used for hosted deploys, not the `build/index.js` that Claude Desktop runs.
+> Use `npm run build:stdio` for local Claude Desktop setup.
 
 
 ## Connecting with Claude Desktop

@@ -1,6 +1,10 @@
+# build/ is intentionally tracked: the README points Claude Desktop directly
+# at build/index.js, and package.json publishes it via "files".
 node_modules/
 /node_modules
 dist/
+.smithery/
 .env
 *.log
 /references
+.DS_Store
