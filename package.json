@@ -15,7 +15,7 @@
 		"node": ">=20"
 	},
 	"bin": {
-		"macrostrat-mcp": "./build/index.js"
+		"macrostrat-mcp": "build/index.js"
 	},
 	"scripts": {
 		"build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
