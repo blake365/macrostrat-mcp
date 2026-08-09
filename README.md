@@ -16,6 +16,8 @@ An MCP server providing access to the [Macrostrat API](https://macrostrat.org/ap
 npx -y macrostrat-mcp
 ```
 
+No API key required — the Macrostrat API is free and public.
+
 ## Overview
 
 This Model Context Protocol (MCP) server enables AI assistants and applications to:
