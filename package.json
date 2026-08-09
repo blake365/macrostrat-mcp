@@ -1,41 +1,63 @@
 {
-	"name": "macrostrat",
+	"name": "macrostrat-mcp",
 	"version": "1.0.0",
-	"main": "./build/index.js",
-	"module": "./src/server.ts",
+	"description": "Macrostrat MCP Server - Access geological data, rock units, formations, and stratigraphic information worldwide",
 	"type": "module",
+	"main": "./build/server.js",
+	"types": "./build/server.d.ts",
+	"exports": {
+		".": {
+			"types": "./build/server.d.ts",
+			"default": "./build/server.js"
+		}
+	},
 	"engines": {
 		"node": ">=20"
 	},
 	"bin": {
-		"macrostrat": "./build/index.js"
+		"macrostrat-mcp": "./build/index.js"
 	},
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "npx @smithery/cli build",
-		"build:stdio": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
-		"build:http": "npx @smithery/cli build",
-		"dev": "npx @smithery/cli dev",
-		"dev:stdio": "tsx src/index.ts",
-		"start": "tsx src/index.ts"
+		"build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+		"dev": "tsx src/index.ts",
+		"start": "node build/index.js",
+		"typecheck": "tsc --noEmit",
+		"prepublishOnly": "npm run build",
+		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"files": [
-		"build"
+		"build",
+		"README.md",
+		"LICENSE"
 	],
 	"keywords": [
 		"macrostrat",
 		"geology",
-		"stratigraphy"
+		"stratigraphy",
+		"mcp",
+		"modelcontextprotocol",
+		"model-context-protocol",
+		"mcp-server",
+		"claude",
+		"geoscience",
+		"bedrock",
+		"minerals"
 	],
 	"author": "Blake Morgan",
 	"license": "MIT",
-	"description": "Macrostrat MCP Server - Access geological data, rock units, formations, and stratigraphic information worldwide",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/blake365/macrostrat-mcp.git"
+	},
+	"homepage": "https://github.com/blake365/macrostrat-mcp#readme",
+	"bugs": {
+		"url": "https://github.com/blake365/macrostrat-mcp/issues"
+	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.30.0",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@smithery/cli": "^3.19.0",
 		"@types/node": "^22.20.1",
 		"tsx": "^4.23.11",
 		"typescript": "^5.9.3"

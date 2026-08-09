@@ -1,8 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { createRequire } from "node:module";
 import { z } from "zod";
 
-// Configuration schema for smithery.yaml
-export const configSchema = z.object({});
+// Report the published package version rather than a hardcoded copy that drifts.
+// Safe because we ship plain tsc output: ../package.json resolves from both
+// src/ (tsx) and build/ (published).
+const SERVER_VERSION: string = createRequire(import.meta.url)("../package.json").version;
 
 // Give up on a Macrostrat request rather than hanging the tool call forever.
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -39,14 +42,14 @@ async function fetchJson(url: string) {
   }
 }
 
-export default function createServer({
-  config,
-}: {
-  config: z.infer<typeof configSchema>;
-}) {
+/**
+ * Build the Macrostrat MCP server with all tools, prompts, and resources
+ * registered. Side-effect free: the caller chooses and connects the transport.
+ */
+export default function createServer() {
   const server = new McpServer({
     name: "macrostrat",
-    version: "1.0.0",
+    version: SERVER_VERSION,
   });
 
   // API Schemas for resources
@@ -1296,5 +1299,5 @@ Step 6: Provide both the tile URLs and detailed analysis of the geological featu
     }
   );
 
-  return server.server;
+  return server;
 }

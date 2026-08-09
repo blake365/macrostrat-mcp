@@ -10,14 +10,17 @@ This is a Model Context Protocol (MCP) server that provides access to the Macros
 
 **Core Components:**
 - `src/server.ts`: Server factory (`createServer`) with all tools, prompts, resource
-  schemas, and API integrations. Side-effect free — it only builds and returns a server.
-- `src/index.ts`: STDIO entry point. Imports `createServer` and connects a
-  `StdioServerTransport`. This is what `build/index.js` becomes, and what Claude
-  Desktop runs.
+  schemas, and API integrations. Side-effect free — it only builds and returns an
+  `McpServer`. This is the package's library export.
+- `src/index.ts`: STDIO entry point, and the `macrostrat-mcp` bin. Imports
+  `createServer` and connects a `StdioServerTransport`.
 
-The two entry points are deliberately separate: the Smithery HTTP runtime bundles
-`src/server.ts` (via the `module` field in package.json), so neither file has to
-detect whether it is the process entry point.
+Keeping them separate means `src/server.ts` can be imported and attached to a
+different transport without starting stdio as a side effect.
+
+**Distribution:** published to npm as `macrostrat-mcp`; the intended install path is
+`npx -y macrostrat-mcp`. `build/` is generated and gitignored — npm ships it via the
+`files` field, so do not commit it.
 
 **Key Features:**
 - 8 tools for querying Macrostrat API endpoints
@@ -39,22 +42,21 @@ detect whether it is the process entry point.
 # Install dependencies
 npm install
 
-# Build the STDIO server for Claude Desktop
-# (compiles TypeScript to build/ and sets executable permissions)
-npm run build:stdio
-
-# Build the Smithery HTTP bundle for hosted deploys -> .smithery/shttp/
+# Compile TypeScript to build/ and set executable permissions
 npm run build
 
 # Run from source over STDIO, no build step
-npm run dev:stdio
+npm run dev
+
+# Type-check without emitting
+npm run typecheck
 
 # No tests configured (test command will fail)
 npm test  # Returns error
 ```
 
-Note: `@smithery/cli` is pinned to the v3 line. v4 dropped the `build`, `dev`, and
-`publish` commands and is now a consumer-only CLI, so it cannot build this server.
+Publishing: `npm publish` (prepublishOnly rebuilds first). Verify a release candidate
+with `npm pack` and installing the tarball into a scratch directory before publishing.
 
 ## API Integration
 
@@ -76,7 +78,19 @@ The server connects to multiple Macrostrat API endpoints:
 
 ## MCP Configuration
 
-After building, configure Claude Desktop with:
+Published install:
+```json
+{
+  "mcpServers": {
+    "macrostrat": {
+      "command": "npx",
+      "args": ["-y", "macrostrat-mcp"]
+    }
+  }
+}
+```
+
+Local build (for development), after `npm run build`:
 ```json
 {
   "mcpServers": {

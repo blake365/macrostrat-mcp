@@ -3,13 +3,18 @@
 # macrostrat-mcp
 MCP server for Macrostrat API
 
-[![smithery badge](https://smithery.ai/badge/@blake365/macrostrat-mcp)](https://smithery.ai/server/@blake365/macrostrat-mcp)
+[![npm version](https://img.shields.io/npm/v/macrostrat-mcp.svg)](https://www.npmjs.com/package/macrostrat-mcp)
 
 <a href="https://glama.ai/mcp/servers/v67anfiq0s">
   <img width="380" height="200" src="https://glama.ai/mcp/servers/v67anfiq0s/badge" alt="Macrostrat Server MCP server" />
 </a>
 
-An MCP server implementation for providing access to the [Macrostrat API](https://macrostrat.org/api) within [Claude Desktop](https://claude.ai/download).
+An MCP server providing access to the [Macrostrat API](https://macrostrat.org/api) from
+[Claude Desktop](https://claude.ai/download), Claude Code, and any other MCP client.
+
+```bash
+npx -y macrostrat-mcp
+```
 
 ## Overview
 
@@ -109,33 +114,10 @@ The bedrock of Nashville today consists primarily of Ordovician limestone format
 
 ## Installation
 
-### Installing via Smithery
+Requires Node.js 20 or newer. No install step is needed — `npx` fetches the server on
+first run.
 
-To install Macrostrat API Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@blake365/macrostrat-mcp):
-
-```bash
-npx -y @smithery/cli install @blake365/macrostrat-mcp --client claude
-```
-
-### Building locally
-
-Requires Node.js 20 or newer.
-
-- Run `npm install` to install dependencies
-- Run `npm run build:stdio` to build the server to `build/index.js`
-- Quit and restart Claude Desktop after making changes
-
-If you want to make changes to the server, edit `src/server.ts` — that file holds all
-the tools, prompts, and API calls. `src/index.ts` is just the STDIO entry point.
-
-To try changes without building, run `npm run dev:stdio`.
-
-> **Note:** `npm run build` is a different command — it produces the Smithery HTTP
-> bundle used for hosted deploys, not the `build/index.js` that Claude Desktop runs.
-> Use `npm run build:stdio` for local Claude Desktop setup.
-
-
-## Connecting with Claude Desktop
+### Claude Desktop
 
 1. Open your Claude Desktop configuration at:
    - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -146,10 +128,8 @@ To try changes without building, run `npm run dev:stdio`.
 {
     "mcpServers": {
         "macrostrat": {
-            "command": "node",
-            "args": [
-                "/Full/Route/to/Folder/macrostrat/build/index.js"
-            ]
+            "command": "npx",
+            "args": ["-y", "macrostrat-mcp"]
         }
     }
 }
@@ -159,6 +139,46 @@ To try changes without building, run `npm run dev:stdio`.
 
 Once you restart you should see an icon for search and tools. Click this button to see the MCP tools available.
 
+### Claude Code
+
+```bash
+claude mcp add macrostrat -- npx -y macrostrat-mcp
+```
+
+### Any other MCP client
+
+The server speaks MCP over STDIO. Run it with `npx -y macrostrat-mcp`, or install it
+globally with `npm install -g macrostrat-mcp` and run `macrostrat-mcp`.
+
+## Development
+
+```bash
+npm install        # install dependencies
+npm run dev        # run from source over STDIO, no build step
+npm run build      # compile TypeScript to build/
+npm run typecheck  # type-check without emitting
+```
+
+`src/server.ts` holds all the tools, prompts, and API calls — that is the file to edit.
+`src/index.ts` is just the STDIO entry point.
+
+To point Claude Desktop at a local build instead of the published package, use
+`"command": "node"` with `"args": ["/full/path/to/macrostrat/build/index.js"]`, and
+restart Claude Desktop after each rebuild.
+
+### Using it as a library
+
+The server factory is exported if you want to attach a different transport:
+
+```js
+import createServer from "macrostrat-mcp";
+
+const server = createServer();
+await server.connect(yourTransport);
+```
+
 ## Troubleshooting
 
-If you get errors when running the server you may need to provide the full path to the `node` command. For example, on macOS: `/usr/local/bin/node`
+If Claude Desktop cannot find `npx`, provide its full path (on macOS, typically
+`/usr/local/bin/npx` or `/opt/homebrew/bin/npx`). The same applies to `node` if you are
+running a local build.

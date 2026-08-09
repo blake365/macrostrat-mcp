@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 /**
- * STDIO entry point, used by Claude Desktop and any other stdio MCP client.
+ * STDIO entry point — what `npx macrostrat-mcp` and Claude Desktop run.
  *
- * The Smithery HTTP runtime builds `src/server.ts` instead, which exports the
- * server factory with no side effects. Keeping the two entry points separate
- * means neither has to guess whether it is the process entry point.
+ * `src/server.ts` holds the server itself and is side-effect free, so it can be
+ * imported and connected to a different transport without starting stdio.
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import createServer from "./server.js";
 
-const server = createServer({ config: {} });
+const server = createServer();
 const transport = new StdioServerTransport();
 
 server.connect(transport).catch((error) => {
