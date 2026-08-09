@@ -1,6 +1,6 @@
 {
 	"name": "macrostrat-mcp",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Macrostrat MCP Server - Access geological data, rock units, formations, and stratigraphic information worldwide",
 	"type": "module",
 	"main": "./build/server.js",
